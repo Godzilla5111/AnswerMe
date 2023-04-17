@@ -1,7 +1,6 @@
 # import re
 import spacy
 
-
 class ComplexFunc:
 
     def __init__(self):
@@ -25,6 +24,7 @@ class ComplexFunc:
 
         for word in sentence:
             if word.dep_ in ('obj', 'dobj', 'pobj'):
+                buffer_obj = word
 
                 if str(word) in place and word.nbor(-1).dep_ in ('prep') and str(word.nbor(-1)) == "of":
                     pass
@@ -39,11 +39,9 @@ class ComplexFunc:
 
                                     elif child.nbor(-1).dep_ in ('punct'):
                                         if child.nbor(-2).dep_ in ('compound'):
-
                                             child = str(child.nbor(-2)) + str(child.nbor(-1)) + str(child)
                                             object_list.append(str(child))
                                         elif child.nbor(-2).dep_ in ('amod'):
-
                                             child = str(child.nbor(-2)) + str(child.nbor(-1)) + str(child)
                                             object_list.append(str(child))
 
@@ -87,7 +85,7 @@ class ComplexFunc:
                         if str(word) in time and object_list == []:
                             object_list.append(str(word))
 
-        return object_list, word
+        return object_list, buffer_obj
 
     def find_subj(self, sentence):
         subject_list = []
@@ -188,6 +186,7 @@ class ComplexFunc:
         for n in object_list:
             pb.append([n])
 
+
         for m in range(0, len(pa)):
             for n in range(0, len(pb)):
                 self.ent_pairs.append([str(pa[m][0]).lower(), str(relation).lower(),str(aux_relation).lower(), str(pb[n][0]).lower(), str(time), str(place)])
@@ -205,9 +204,7 @@ class ComplexFunc:
 
         for obj in questionNLPed:
             objectNEW = obj
-
             if obj.dep_ in ('obj', 'dobj', 'pobj', 'xcomp') and str(obj).lower() != "what":
-                buffer_obj = obj
 
                 if obj.dep_ in ('xcomp') and obj.nbor(-1).dep_ in ('aux') and obj.nbor(-2).dep_ in ('ROOT'):
                     continue
@@ -270,6 +267,7 @@ class ComplexFunc:
                 if relation:
                     relation = relation[0]
                     sp_relation = relation
+
                     if relation.nbor(1).pos_ in ('ADP', 'PART', 'VERB'):
                         if relation.nbor(2).dep_ in ('xcomp'):
                             aux_relation = str(relation.nbor(2))
@@ -277,7 +275,9 @@ class ComplexFunc:
                         else:
                             relation = str(relation)
 
-                    subject = [a for a in sp_relation.lefts if a.dep_ in ('subj', 'nsubj','nsubjpass')]
+
+                    subject = [a for a in sp_relation.lefts if a.dep_ in ('subj', 'nsubj','nsubjpass')]  # identify subject nodes
+
                     if subject:
                         subject = subject[0]
                     else:
@@ -311,7 +311,6 @@ class ComplexFunc:
 
                     subject = self.find_subj(questionNLPed)
                     subject = subject[-1]
-
                 else:
                     relation = 'unknown'
 
@@ -327,8 +326,6 @@ class ComplexFunc:
                 return self.ent_pairs
 
             elif obj.dep_ in ('advmod'):
-
-                subject = ""
                 if str(obj).lower() == 'where':
                     relation = [w for w in obj.ancestors if w.dep_ =='ROOT']
                     if relation:
@@ -338,11 +335,12 @@ class ComplexFunc:
                             if relation.nbor(2).dep_ in ('xcomp'):
                                 aux_relation = str(relation.nbor(2))
                                 relation = str(relation)+" "+str(relation.nbor(1))
+                            else:
                                 relation = str(relation)
 
                         subject = self.find_subj(questionNLPed)
+                        # print(subject)
                         subject = subject[-1]
-
                     else:
                         relation = 'unknown'
 
@@ -369,4 +367,45 @@ class ComplexFunc:
 
                     return self.ent_pairs
 
+                elif str(obj).lower() == 'when':
+                    relation = [w for w in obj.ancestors if w.dep_ =='ROOT']
+                    if relation:
+                        relation = relation[0]
+                        sp_relation = relation
+                        if relation.nbor(1).pos_ in ('ADP', 'PART', 'VERB'):
+                            if relation.nbor(2).dep_ in ('xcomp'):
+                                relation = ' '.join((str(relation), str(relation.nbor(1)), str(relation.nbor(2))))
+                            else:
+                                relation = ' '.join((str(relation), str(relation.nbor(1))))
 
+                        for left_word in sp_relation.lefts:
+                            if left_word.dep_ in ('subj', 'nsubj','nsubjpass'):
+                                if [i for i in left_word.lefts]:
+                                    for left_of_left_word in left_word.lefts:
+                                        subject = str(left_of_left_word) + " " + str(left_word)
+                                else:
+                                    subject = str(left_word)
+                    else:
+                        relation = 'unknown'
+
+                    self.ent_pairs = []
+                    if maybe_object:
+                        if maybe_time and maybe_place:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str(maybe_object[-1]).lower(), str("when").lower(), str(maybe_place[0]).lower()])
+                        elif maybe_time:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str(maybe_object[-1]).lower(), str("when").lower(), str("").lower()])
+                        elif maybe_place:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str(maybe_object[-1]).lower(), str("when").lower(), str(maybe_place[0]).lower()])
+                        else:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str(maybe_object[-1]).lower(), str("when").lower(), str("").lower()])
+                    else:
+                        if maybe_time and maybe_place:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str("").lower(), str("when").lower(), str(maybe_place[0]).lower()])
+                        elif maybe_time:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str("").lower(), str("when").lower(), str("").lower()])
+                        elif maybe_place:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str("").lower(), str("when").lower(), str(maybe_place[0]).lower()])
+                        else:
+                            self.ent_pairs.append([str(subject).lower(), str(relation).lower(),str(aux_relation).lower(), str("").lower(), str("when").lower(), str("").lower()])
+
+                    return self.ent_pairs
