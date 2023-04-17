@@ -24,7 +24,6 @@ class ComplexFunc:
 
         for word in sentence:
             if word.dep_ in ('obj', 'dobj', 'pobj'):
-                buffer_obj = word
 
                 if str(word) in place and word.nbor(-1).dep_ in ('prep') and str(word.nbor(-1)) == "of":
                     pass
@@ -85,7 +84,7 @@ class ComplexFunc:
                         if str(word) in time and object_list == []:
                             object_list.append(str(word))
 
-        return object_list, buffer_obj
+        return object_list, word
 
     def find_subj(self, sentence):
         subject_list = []
