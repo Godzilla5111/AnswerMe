@@ -4,7 +4,7 @@ import pandas as pd
 import spacy
 
 from kgqa.processor import ComplexFunc
-from kgqa.utils.utils import change_nouns
+from kgqa.utils.preprocess import change_nouns
 
 
 class GetEntity:
